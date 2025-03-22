@@ -15,12 +15,13 @@ on:
 
 jobs:
   build:
-
     name: build
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
 
     steps:
-
       - name: set up go 1.23
         uses: actions/setup-go@v5
         with:
