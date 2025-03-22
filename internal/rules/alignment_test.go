@@ -24,6 +24,8 @@ func TestIndentRule_Apply_fix(t *testing.T) {
 	incorrectMessagePath := must(newTestIndentData("incorrect_message.proto"))
 	correctIssue99Path := must(newTestIndentData("issue_99.proto"))
 	incorrectIssue99Path := must(newTestIndentData("incorrect_issue_99.proto"))
+	incorrectComments := must(newTestIndentData("incorrect_comments.proto"))
+	correctComments := must(newTestIndentData("comments.proto"))
 
 	tests := []struct {
 		name               string
@@ -70,6 +72,16 @@ func TestIndentRule_Apply_fix(t *testing.T) {
 			name:            "incorrect issue_99",
 			inputTestData:   incorrectIssue99Path,
 			wantCorrectData: correctIssue99Path,
+		},
+		{
+			name:            "correct comments",
+			inputTestData:   correctComments,
+			wantCorrectData: correctComments,
+		},
+		{
+			name:            "incorrect comments",
+			inputTestData:   incorrectComments,
+			wantCorrectData: correctComments,
 		},
 	}
 

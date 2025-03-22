@@ -53,7 +53,8 @@ func (r AlignmentRule) Apply(
 }
 
 type alignFix struct {
-	left, right string
+	num                 int
+	left, right, result string
 }
 
 type alignmentVisitor struct {
@@ -70,20 +71,32 @@ func (v alignmentVisitor) Finally() error {
 
 func (v alignmentVisitor) fix() error {
 	v.Fixer.ReplaceAll(func(lines []string) []string {
-		result := make([]string, 0, len(lines))
+		result := make([]string, len(lines))
 
 		needFix := make([]alignFix, 0)
-		for _, line := range lines {
+		for i, line := range lines {
+			if strings.HasPrefix(strings.TrimSpace(line), "//") {
+				result[i] = line
+				continue
+			}
 			if !strings.Contains(line, "=") {
-				result = append(result, calcLines(needFix)...)
+				for _, fix := range calcLines(needFix) {
+					result[fix.num] = fix.result
+				}
 				needFix = make([]alignFix, 0)
-				result = append(result, line)
+				result[i] = line
 				continue
 			}
 
 			split := strings.Split(line, "=")
 			left, right := split[0], strings.Join(split[1:], "=")
-			needFix = append(needFix, alignFix{trimRightSpace(left), trimLeftSpace(right)})
+			needFix = append(needFix,
+				alignFix{
+					i,
+					strings.TrimRightFunc(left, unicode.IsSpace),
+					strings.TrimLeftFunc(right, unicode.IsSpace),
+					"",
+				})
 		}
 
 		return result
@@ -92,41 +105,17 @@ func (v alignmentVisitor) fix() error {
 	return v.BaseFixableVisitor.Finally()
 }
 
-func calcLines(lines []alignFix) []string {
-	result := make([]string, 0, len(lines))
-
+func calcLines(lines []alignFix) []alignFix {
 	maxLeftLen := 0
 	for _, line := range lines {
 		if len(line.left) > maxLeftLen {
 			maxLeftLen = len(line.left)
 		}
 	}
-	for _, line := range lines {
+	for i, line := range lines {
 		needLen := maxLeftLen - len(line.left)
-		result = append(result, line.left+strings.Repeat(" ", needLen)+" = "+line.right)
+		lines[i].result = line.left + strings.Repeat(" ", needLen) + " = " + line.right
 	}
 
-	return result
-}
-
-func trimRightSpace(s string) string {
-	count := 0
-	for i := len(s) - 1; i >= 0; i-- {
-		if !unicode.IsSpace(rune(s[i])) {
-			break
-		}
-		count++
-	}
-	return s[:len(s)-count]
-}
-
-func trimLeftSpace(s string) string {
-	count := 0
-	for i := range len(s) {
-		if !unicode.IsSpace(rune(s[i])) {
-			break
-		}
-		count++
-	}
-	return s[count:]
+	return lines
 }

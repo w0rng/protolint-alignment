@@ -1,0 +1,9 @@
+syntax = "proto3";
+enum enumAllowingAlias {
+    UNKNOWN = 0;
+    // some comment
+    option allow_alias = true;
+    STARTED = 1;
+    // other comment
+    RUNNING = 2 [(custom_option) = "hello world"];
+}
