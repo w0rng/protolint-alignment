@@ -1,12 +1,56 @@
-package alignmentrule
+package rules
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 
 	"github.com/yoheimuta/go-protoparser/v4/parser"
+	"github.com/yoheimuta/protolint/linter/report"
+	"github.com/yoheimuta/protolint/linter/rule"
 	"github.com/yoheimuta/protolint/linter/visitor"
 )
+
+type AlignmentRule struct {
+	fixMode bool
+}
+
+func NewAlignmentRule(fixMode bool) AlignmentRule {
+	return AlignmentRule{
+		fixMode: fixMode,
+	}
+}
+
+func (r AlignmentRule) ID() string {
+	return "ALIGNMENT_RULE"
+}
+
+func (r AlignmentRule) Purpose() string {
+	return "Alignment by sign is equal to (like go)."
+}
+
+func (r AlignmentRule) IsOfficial() bool {
+	return false
+}
+
+func (r AlignmentRule) Severity() rule.Severity {
+	return rule.SeverityNote
+}
+
+func (r AlignmentRule) Apply(
+	proto *parser.Proto,
+) ([]report.Failure, error) {
+	base, err := visitor.NewBaseFixableVisitor(r.ID(), r.fixMode, proto, string(r.Severity()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create base fixable visitor: %w", err)
+	}
+
+	v := &alignmentVisitor{
+		BaseFixableVisitor: base,
+		fixMode:            r.fixMode,
+	}
+	return visitor.RunVisitor(v, proto, r.ID())
+}
 
 type alignFix struct {
 	left, right string
@@ -23,24 +67,6 @@ func (v alignmentVisitor) Finally() error {
 	}
 	return nil
 }
-
-func (v alignmentVisitor) VisitEnum(_ *parser.Enum) bool             { return false }
-func (v alignmentVisitor) VisitEnumField(_ *parser.EnumField) bool   { return false }
-func (v alignmentVisitor) VisitExtend(_ *parser.Extend) bool         { return false }
-func (v alignmentVisitor) VisitField(_ *parser.Field) bool           { return false }
-func (v alignmentVisitor) VisitGroupField(_ *parser.GroupField) bool { return false }
-func (v alignmentVisitor) VisitImport(_ *parser.Import) bool         { return false }
-func (v alignmentVisitor) VisitMapField(_ *parser.MapField) bool     { return false }
-func (v alignmentVisitor) VisitMessage(_ *parser.Message) bool       { return false }
-func (v alignmentVisitor) VisitOneof(_ *parser.Oneof) bool           { return false }
-func (v alignmentVisitor) VisitOneofField(_ *parser.OneofField) bool { return false }
-func (v alignmentVisitor) VisitOption(_ *parser.Option) bool         { return false }
-func (v alignmentVisitor) VisitPackage(_ *parser.Package) bool       { return false }
-func (v alignmentVisitor) VisitReserved(_ *parser.Reserved) bool     { return false }
-func (v alignmentVisitor) VisitRPC(_ *parser.RPC) bool               { return false }
-func (v alignmentVisitor) VisitService(_ *parser.Service) bool       { return false }
-func (v alignmentVisitor) VisitSyntax(_ *parser.Syntax) bool         { return false }
-func (v alignmentVisitor) VisitEdition(_ *parser.Edition) bool       { return false }
 
 func (v alignmentVisitor) fix() error {
 	v.Fixer.ReplaceAll(func(lines []string) []string {

@@ -1,13 +1,12 @@
-package alignmentrule_test
+package rules_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/w0rng/protolint-alignment/internal/custom_rules/alignmentrule"
+	"github.com/w0rng/protolint-alignment/internal/rules"
 	"github.com/w0rng/protolint-alignment/internal/utils"
-	"github.com/yoheimuta/protolint/linter/rule"
 )
 
 func newTestIndentData(
@@ -76,10 +75,7 @@ func TestIndentRule_Apply_fix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ruleToTest := alignmentrule.New(
-				true,
-				rule.SeverityError,
-			)
+			ruleToTest := rules.NewAlignmentRule(true)
 
 			proto, err := utils.NewProtoFile(tt.inputTestData.FilePath, tt.inputTestData.FilePath).Parse(false)
 			require.NoError(t, err)
@@ -99,10 +95,7 @@ func TestIndentRule_Apply_fix(t *testing.T) {
 			}()
 
 			// check whether the modified content can pass the lint in the end.
-			ruleOnlyCheck := alignmentrule.New(
-				false,
-				rule.SeverityError,
-			)
+			ruleOnlyCheck := rules.NewAlignmentRule(false)
 			proto, err = utils.NewProtoFile(tt.inputTestData.FilePath, tt.inputTestData.FilePath).Parse(false)
 			require.NoError(t, err)
 			gotCheck, err := ruleOnlyCheck.Apply(proto)
