@@ -1,0 +1,53 @@
+name: build-app
+on:
+  push:
+    branches:
+    tags:
+    paths_ignored:
+      - ".github/workflows/updater.yml"
+      - "updater/**"
+      - "**.md"
+  pull_request:
+    paths_ignored:
+      - ".github/workflows/updater.yml"
+      - "updater/**"
+      - "**.md"
+
+jobs:
+  build:
+
+    name: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.23', '1.24' ]
+
+    steps:
+
+      - name: set up go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: build and test
+        run: |
+          go test -v -race -timeout=100s -covermode=atomic -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp ./...
+          go build -race ./...
+          cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "mocks" | grep -v "_mock" > $GITHUB_WORKSPACE/profile.cov
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64
+
+      - name: install goveralls
+        run: go install github.com/mattn/goveralls@latest
+
+      - name: submit coverage
+        run: $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=$GITHUB_WORKSPACE/profile.cov
+        env:
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
